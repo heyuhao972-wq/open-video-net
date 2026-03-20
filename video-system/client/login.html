@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Login</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<header>
+  <div class="brand">
+    <span class="brand-badge">OV</span>
+    Identity
+  </div>
+  <nav class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="register.html">Register</a>
+  </nav>
+</header>
+
+<div class="form-card">
+  <h1>Sign In</h1>
+  <form id="login-form">
+    <button type="submit">Login</button>
+  </form>
+  <div class="helper">Login uses your local private key to sign a nonce.</div>
+  <div class="action-list">
+    <button id="export-keys" type="button" class="action">Export Keys <span>JSON</span></button>
+    <label class="action">
+      Import Keys
+      <input type="file" id="import-keys" accept="application/json" style="display:none">
+      <span>JSON</span>
+    </label>
+  </div>
+  <textarea id="public-key" placeholder="Public key" readonly rows="3" style="margin-top:12px"></textarea>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/login.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Video Platform</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+<div class="container">
+  <div class="topbar">
+    <div class="brand">Video Platform</div>
+    <div class="nav">
+      <a href="upload.html">Upload</a>
+      <a href="login.html">Login</a>
+      <a href="follow.html">Follow</a>
+      <a href="me.html">Me</a>
+      <a href="notifications.html">Notifications</a>
+    </div>
+  </div>
+
+  <div class="hero">
+    Discover videos across platforms and switch recommendation sources on the fly.
+  </div>
+
+  <div class="grid">
+    <div class="panel recommend-select">
+      <label for="recommend-select">Recommendation</label>
+      <form>
+        <select id="recommend-select"></select>
+        <input type="text" id="recommend-custom" placeholder="Custom recommend URL">
+        <button type="button" id="recommend-apply">Apply</button>
+      </form>
+    </div>
+
+    <div class="panel recommend-type">
+      <label for="recommend-type">Recommend Type</label>
+      <select id="recommend-type">
+        <option value="">Home</option>
+        <option value="hot">Hot</option>
+        <option value="latest">Latest</option>
+        <option value="following">Following</option>
+      </select>
+    </div>
+
+    <div class="panel stack">
+      <form id="search-form">
+        <input type="text" id="search-input" placeholder="Search videos">
+        <button type="submit">Search</button>
+      </form>
+
+      <form id="user-search-form">
+        <input type="text" id="user-search-input" placeholder="Search users">
+        <button type="submit">Search Users</button>
+      </form>
+
+      <form id="tag-search-form">
+        <input type="text" id="tag-search-input" placeholder="Search by tag">
+        <button type="submit">Search Tag</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Video List</h2>
+    <ul id="video-list"></ul>
+    <div class="footer-actions">
+      <button type="button" id="video-load-more" class="secondary">Load More</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>User List</h2>
+    <ul id="user-list"></ul>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/video-list.js"></script>
+
+</body>
+</html>

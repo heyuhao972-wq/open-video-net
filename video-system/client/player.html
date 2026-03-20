@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Player</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<header>
+  <div class="brand">
+    <span class="brand-badge">OV</span>
+    OpenVideo Player
+  </div>
+  <nav class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="upload.html">Upload</a>
+  </nav>
+</header>
+
+<main class="player-layout">
+  <section class="player-card">
+    <video id="player" controls></video>
+    <div id="meta" class="meta-box"></div>
+    <div id="status" class="status"></div>
+  </section>
+
+  <aside class="player-card">
+    <h3>Actions</h3>
+    <div class="action-buttons">
+      <button id="like-btn" class="primary">Like</button>
+      <button id="share-btn">Share</button>
+      <button id="not-interested-btn">Not Interested</button>
+      <button id="follow-btn">Follow Author</button>
+      <button id="unfollow-btn">Unfollow Author</button>
+    </div>
+    <p class="note">Actions update your profile to improve recommendation results across platforms.</p>
+  </aside>
+</main>
+
+<script src="js/api.js"></script>
+<script src="js/player.js"></script>
+
+</body>
+</html>

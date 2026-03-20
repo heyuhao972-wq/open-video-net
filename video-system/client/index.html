@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>OpenVideo Client</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<header>
+  <div class="brand">
+    <span class="brand-badge">OV</span>
+    OpenVideo Client
+  </div>
+  <nav class="nav-links">
+    <a href="upload.html">Upload</a>
+    <a href="follow.html">Follow</a>
+    <a href="login.html">Login</a>
+  </nav>
+</header>
+
+<main class="page">
+  <aside class="side-panel">
+    <h3>Recommendation Nodes</h3>
+    <p>选择不同的推荐平台，探索不同的内容视角。此版本接入统一推荐接口。</p>
+    <div class="action-list">
+      <div class="action">Tech Focus <span>R1</span></div>
+      <div class="action">Trending Mix <span>R2</span></div>
+      <div class="action">Creator Graph <span>R3</span></div>
+    </div>
+  </aside>
+
+  <section class="main-panel">
+    <div class="hero">
+      <h1>Decentralized Video Discovery</h1>
+      <p>从多个内容平台获取视频，通过独立推荐平台返回统一 video:// 地址。</p>
+      <div class="search-bar">
+        <select id="recommend-select">
+          <option value="http://localhost:8082">R1 - Tech Focus</option>
+          <option value="http://localhost:8086">R2 - Trending Mix</option>
+        </select>
+      </div>
+      <form id="search-form" class="search-bar">
+        <input type="text" id="search-input" placeholder="Search by title or tag">
+        <button type="submit">Search</button>
+      </form>
+    </div>
+
+    <div class="video-grid" id="video-list"></div>
+  </section>
+</main>
+
+<script src="js/api.js"></script>
+<script src="js/video-list.js"></script>
+
+</body>
+</html>

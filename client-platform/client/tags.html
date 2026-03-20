@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Tags</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+<div class="container">
+  <div class="topbar">
+    <div class="brand">Tag Explorer</div>
+    <div class="nav">
+      <a href="index.html">Home</a>
+      <a href="upload.html">Upload</a>
+      <a href="me.html">Me</a>
+    </div>
+  </div>
+
+  <div class="hero">
+    Browse videos by tag across connected content platforms.
+  </div>
+
+  <div class="panel">
+    <form id="tag-form">
+      <input type="text" id="tag-input" placeholder="Tag">
+      <button type="submit">Search</button>
+    </form>
+  </div>
+
+  <div class="section">
+    <ul id="tag-videos"></ul>
+    <div class="footer-actions">
+      <button type="button" id="tag-load-more" class="secondary">Load More</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/tags.js"></script>
+
+</body>
+</html>

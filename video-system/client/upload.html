@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Upload Video</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<header>
+  <div class="brand">
+    <span class="brand-badge">OV</span>
+    Upload Center
+  </div>
+  <nav class="nav-links">
+    <a href="index.html">Home</a>
+    <a href="login.html">Login</a>
+  </nav>
+</header>
+
+  <div class="form-card">
+  <h1>Upload Video</h1>
+  <form id="upload-form">
+    <select id="platform-select">
+      <option value="http://localhost:8080">Platform A</option>
+      <option value="http://localhost:8084">Platform B</option>
+    </select>
+    <input type="text" id="title" placeholder="Video Title">
+    <input type="text" id="description" placeholder="Description">
+    <input type="text" id="tags" placeholder="Tags (comma separated)">
+    <input type="file" id="file">
+    <button type="submit">Upload</button>
+  </form>
+  <div class="helper">平台将根据标签规则决定是否接收。</div>
+  <div id="upload-status" class="status"></div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/upload.js"></script>
+
+</body>
+</html>
