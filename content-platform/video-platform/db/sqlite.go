@@ -28,7 +28,12 @@ CREATE TABLE IF NOT EXISTS comments (
 	video_id TEXT,
 	user_id TEXT,
 	content TEXT,
+	parent_id INTEGER DEFAULT 0,
 	likes INTEGER DEFAULT 0,
+	status TEXT DEFAULT 'approved',
+	review_reason TEXT,
+	reviewed_by TEXT,
+	reviewed_at INTEGER,
 	created_at INTEGER
 );
 CREATE TABLE IF NOT EXISTS comment_likes (
@@ -37,5 +42,14 @@ CREATE TABLE IF NOT EXISTS comment_likes (
 	PRIMARY KEY (user_id, comment_id)
 );
 `)
-	return err
+	if err != nil {
+		return err
+	}
+	// backfill older databases
+	_, _ = db.Exec("ALTER TABLE comments ADD COLUMN parent_id INTEGER DEFAULT 0")
+	_, _ = db.Exec("ALTER TABLE comments ADD COLUMN status TEXT DEFAULT 'approved'")
+	_, _ = db.Exec("ALTER TABLE comments ADD COLUMN review_reason TEXT")
+	_, _ = db.Exec("ALTER TABLE comments ADD COLUMN reviewed_by TEXT")
+	_, _ = db.Exec("ALTER TABLE comments ADD COLUMN reviewed_at INTEGER")
+	return nil
 }

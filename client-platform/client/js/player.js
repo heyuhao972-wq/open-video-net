@@ -93,11 +93,35 @@ async function loadComments(){
     if (!Array.isArray(data)){
         return
     }
+    const byId = {}
     data.forEach(c=>{
+        c.children = []
+        byId[c.id] = c
+    })
+    const roots = []
+    data.forEach(c=>{
+        if (c.parent_id && byId[c.parent_id]) {
+            byId[c.parent_id].children.push(c)
+        } else {
+            roots.push(c)
+        }
+    })
+
+    function renderComment(c, depth){
         const li = document.createElement("li")
+        if (depth > 0){
+            li.style.marginLeft = String(depth * 16) + "px"
+        }
         const text = document.createElement("span")
         text.innerText = (c.user_id || "user") + ": " + (c.content || "") + " (" + (c.likes || 0) + ")"
         li.appendChild(text)
+
+        const replyBtn = document.createElement("button")
+        replyBtn.innerText = "Reply"
+        replyBtn.addEventListener("click", ()=>{
+            setReplyTarget(c.id, c.user_id || "user")
+        })
+        li.appendChild(replyBtn)
 
         const likeBtn = document.createElement("button")
         likeBtn.innerText = "Like"
@@ -126,10 +150,31 @@ async function loadComments(){
         li.appendChild(delBtn)
 
         list.appendChild(li)
-    })
+        if (Array.isArray(c.children)){
+            c.children.forEach(child=>renderComment(child, depth + 1))
+        }
+    }
+
+    roots.forEach(c=>renderComment(c, 0))
 }
 
 const commentForm = document.getElementById("comment-form")
+const replyBox = document.getElementById("replying-to")
+const cancelReplyBtn = document.getElementById("cancel-reply")
+let replyTargetId = 0
+
+function setReplyTarget(id, label){
+    replyTargetId = id || 0
+    if (replyBox){
+        replyBox.innerText = replyTargetId ? ("Replying to " + label + " (id " + replyTargetId + ")") : ""
+    }
+}
+
+if (cancelReplyBtn){
+    cancelReplyBtn.addEventListener("click", ()=>{
+        setReplyTarget(0, "")
+    })
+}
 if (commentForm){
     commentForm.addEventListener("submit", async e=>{
         e.preventDefault()
@@ -138,7 +183,7 @@ if (commentForm){
         if (!content){
             return
         }
-        const res = await createComment(platform, id, content)
+        const res = await createComment(platform, id, content, replyTargetId)
         if (res.error){
             alert(res.error)
             return
@@ -147,6 +192,7 @@ if (commentForm){
         if (input){
             input.value = ""
         }
+        setReplyTarget(0, "")
         await loadComments()
         await loadStats()
     })

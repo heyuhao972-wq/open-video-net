@@ -10,8 +10,9 @@ import (
 )
 
 type commentRequest struct {
-	VideoID string `json:"video_id"`
-	Content string `json:"content"`
+	VideoID  string `json:"video_id"`
+	Content  string `json:"content"`
+	ParentID int    `json:"parent_id"`
 }
 
 func CreateComment(c *gin.Context) {
@@ -45,7 +46,7 @@ func CreateComment(c *gin.Context) {
 		return
 	}
 
-	comment, err := commentService.Create(strings.TrimSpace(req.VideoID), userIDStr, req.Content)
+	comment, err := commentService.Create(strings.TrimSpace(req.VideoID), userIDStr, req.Content, req.ParentID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -54,7 +55,8 @@ func CreateComment(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"id": comment.ID,
+		"id":     comment.ID,
+		"status": comment.Status,
 	})
 }
 

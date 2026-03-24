@@ -1,5 +1,6 @@
 const API_BASE = "http://localhost:8080"
 const STREAM_BASE = "http://localhost:8081"
+const STORAGE_BASE = "http://localhost:8085"
 
 const PLATFORM_MAP = {
     platformA: "http://localhost:8080",
@@ -24,6 +25,10 @@ function getRecommendBase(){
 
 function setRecommendBase(url){
     localStorage.setItem("recommend_base", url)
+}
+
+function getStorageBase(){
+    return localStorage.getItem("storage_base") || STORAGE_BASE
 }
 
 async function parseJsonSafe(res){
@@ -288,7 +293,7 @@ async function getVideoComments(platformId, videoId){
     return await res.json()
 }
 
-async function createComment(platformId, videoId, content){
+async function createComment(platformId, videoId, content, parentId){
     const token = getAuthToken()
     if (!token){
         return {error:"login required"}
@@ -300,7 +305,7 @@ async function createComment(platformId, videoId, content){
             "Content-Type":"application/json",
             "Authorization":"Bearer " + token
         },
-        body: JSON.stringify({video_id: videoId, content})
+        body: JSON.stringify({video_id: videoId, content, parent_id: parentId || 0})
     })
     return await res.json()
 }
@@ -370,6 +375,11 @@ function getAuthToken(){
 
 }
 
+function logoutUser(){
+    localStorage.removeItem("token")
+    localStorage.removeItem("user_id")
+}
+
 async function getVideoByPlatform(platformId, videoId){
     const base = getPlatformBase(platformId)
     const res = await fetch(base + "/video/" + videoId)
@@ -399,25 +409,43 @@ function getUserId(){
 
 async function uploadVideo(title,description,tags,file,cover){
 
-    const form = new FormData()
+    const publicKey = localStorage.getItem("public_key")
+    const privateKey = localStorage.getItem("private_key")
+    if (!publicKey || !privateKey){
+        return {error:"keys required, please register first"}
+    }
+    const videoHash = await hashFile(file)
+    const timestamp = Math.floor(Date.now() / 1000)
+    const signature = await signMessage(buildProofMessage(videoHash, timestamp, publicKey), privateKey)
 
+    const storageRes = await uploadToStorage(file, videoHash, timestamp, signature, publicKey)
+    if (storageRes.error){
+        return storageRes
+    }
+
+    const storageBase = getStorageBase().replace(/\/+$/,"")
+    const manifestUrl = storageRes.manifest_url
+        ? (storageRes.manifest_url.startsWith("http") ? storageRes.manifest_url : storageBase + storageRes.manifest_url)
+        : ""
+
+    const form = new FormData()
     form.append("title",title)
     form.append("description",description)
     form.append("tags",tags)
-    form.append("file",file)
     if (cover){
         form.append("cover", cover)
     }
-
-    const publicKey = localStorage.getItem("public_key")
-    const privateKey = localStorage.getItem("private_key")
-    if (publicKey && privateKey){
-        const videoHash = await hashFile(file)
-        const timestamp = Math.floor(Date.now() / 1000)
-        const signature = await signMessage(buildProofMessage(videoHash, timestamp, publicKey), privateKey)
-        form.append("video_hash", videoHash)
-        form.append("author_timestamp", String(timestamp))
-        form.append("author_signature", signature)
+    form.append("storage_id", storageRes.storage_id || "")
+    form.append("manifest_url", manifestUrl)
+    form.append("manifest_hash", storageRes.manifest_hash || "")
+    form.append("chunks", JSON.stringify(storageRes.chunks || []))
+    form.append("video_hash", videoHash)
+    form.append("author_timestamp", String(timestamp))
+    form.append("author_signature", signature)
+    if (storageRes.filename){
+        form.append("filename", storageRes.filename)
+    } else if (file && file.name) {
+        form.append("filename", file.name)
     }
 
     const token = getAuthToken()
@@ -435,6 +463,21 @@ async function uploadVideo(title,description,tags,file,cover){
 
     return await res.json()
 
+}
+
+async function uploadToStorage(file, videoHash, timestamp, signature, publicKey){
+    const base = getStorageBase()
+    const form = new FormData()
+    form.append("file", file)
+    form.append("video_hash", videoHash)
+    form.append("author_timestamp", String(timestamp))
+    form.append("author_signature", signature)
+    form.append("author_public_key", publicKey)
+    const res = await fetch(base + "/store",{
+        method:"POST",
+        body: form
+    })
+    return await res.json()
 }
 
 async function getRecommend(user, recType, page, limit){

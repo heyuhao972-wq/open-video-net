@@ -33,15 +33,18 @@ func main() {
 	videoService := service.NewVideoService(repo)
 	userService := service.NewUserService(userRepo, cfg.JWTSecret)
 	commentService := service.NewCommentService(commentRepo)
-	storageClient, err := storage.NewStorageClient("./data/video-storage", 1024*1024)
-	if err != nil {
-		panic(err)
+	var storageClient *storage.StorageClient
+	if cfg.StorageBase == "" {
+		storageClient, err = storage.NewStorageClient("./data/video-storage", 1024*1024)
+		if err != nil {
+			panic(err)
+		}
 	}
 	var indexClient *index.Client
 	if cfg.IndexBase != "" {
 		indexClient = index.NewClient(cfg.IndexBase)
 	}
-	uploadService := service.NewUploadService(videoService, storageClient, indexClient)
+	uploadService := service.NewUploadService(videoService, indexClient)
 	handler.InitServices(videoService, uploadService, userService, storageClient, commentService, reportRepo)
 
 	r := gin.Default()

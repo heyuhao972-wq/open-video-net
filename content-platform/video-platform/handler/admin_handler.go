@@ -103,3 +103,104 @@ func ListReports(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"reports": reportRepo.List()})
 }
+
+func ListPendingVideos(c *gin.Context) {
+	if videoService == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "video service not initialized"})
+		return
+	}
+	status := strings.TrimSpace(c.Query("status"))
+	if status == "" {
+		status = "pending"
+	}
+	videos := videoService.ListVideosByStatus(status)
+	c.JSON(http.StatusOK, gin.H{"videos": videos})
+}
+
+func ReviewVideo(c *gin.Context) {
+	if videoService == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "video service not initialized"})
+		return
+	}
+	id := strings.TrimSpace(c.Param("id"))
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id required"})
+		return
+	}
+	var req struct {
+		Status   string `json:"status"`
+		Reason   string `json:"reason"`
+		Reviewer string `json:"reviewer"`
+	}
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid data"})
+		return
+	}
+	status := strings.ToLower(strings.TrimSpace(req.Status))
+	if status == "" {
+		status = "approved"
+	}
+	video, ok := videoService.ReviewVideo(id, status, strings.TrimSpace(req.Reason), strings.TrimSpace(req.Reviewer))
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"error": "video not found"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"video": video})
+}
+
+func ListPendingComments(c *gin.Context) {
+	if commentService == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "comment service not initialized"})
+		return
+	}
+	status := strings.TrimSpace(c.Query("status"))
+	if status == "" {
+		status = "pending"
+	}
+	comments, err := commentService.ListByStatus(status)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"comments": comments})
+}
+
+func ReviewComment(c *gin.Context) {
+	if commentService == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "comment service not initialized"})
+		return
+	}
+	idStr := strings.TrimSpace(c.Param("id"))
+	if idStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id required"})
+		return
+	}
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	var req struct {
+		Status   string `json:"status"`
+		Reason   string `json:"reason"`
+		Reviewer string `json:"reviewer"`
+	}
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid data"})
+		return
+	}
+	status := strings.ToLower(strings.TrimSpace(req.Status))
+	if status == "" {
+		status = "approved"
+	}
+	comment, ok, err := commentService.Review(id, status, strings.TrimSpace(req.Reason), strings.TrimSpace(req.Reviewer))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"error": "comment not found"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"comment": comment})
+}

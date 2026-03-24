@@ -12,9 +12,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	videostorage "video-storage"
+
 	"video-platform/index"
 	"video-platform/repository"
-	"video-platform/storage"
 )
 
 func TestUploadServiceStoresChunksAndManifest(t *testing.T) {
@@ -29,9 +30,10 @@ func TestUploadServiceStoresChunksAndManifest(t *testing.T) {
 		t.Fatalf("write temp video: %v", err)
 	}
 
-	storeClient, err := storage.NewStorageClient(filepath.Join(tmp, "store"), 1024)
+	storePath := filepath.Join(tmp, "store")
+	processor, err := videostorage.NewProcessor(storePath, 1024)
 	if err != nil {
-		t.Fatalf("new storage client: %v", err)
+		t.Fatalf("new processor: %v", err)
 	}
 
 	indexServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +48,7 @@ func TestUploadServiceStoresChunksAndManifest(t *testing.T) {
 
 	repo := repository.NewVideoRepository()
 	videoService := NewVideoService(repo)
-	uploadService := NewUploadService(videoService, storeClient, indexClient)
+	uploadService := NewUploadService(videoService, indexClient)
 
 	pub, priv, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
@@ -60,7 +62,32 @@ func TestUploadServiceStoresChunksAndManifest(t *testing.T) {
 	proofMsg := videoHash + "|" + "1234567890" + "|" + pubB64
 	signature := base64.StdEncoding.EncodeToString(ed25519.Sign(priv, []byte(proofMsg)))
 
-	video, err := uploadService.UploadVideo("demo", "desc", []string{"tag1"}, videoPath, "video.bin", "", "author-1", pubB64, signature, timestamp, videoHash, "platformA")
+	storeResult, err := processor.StoreVideo(videoPath)
+	if err != nil {
+		t.Fatalf("store video: %v", err)
+	}
+
+	fileServer := httptest.NewServer(http.FileServer(http.Dir(storePath)))
+	defer fileServer.Close()
+	manifestURL := fileServer.URL + "/manifests/" + storeResult.VideoID + ".json"
+
+	video, err := uploadService.RegisterVideoFromStorage(
+		"demo",
+		"desc",
+		[]string{"tag1"},
+		"video.bin",
+		"",
+		storeResult.VideoID,
+		storeResult.ChunkHashes,
+		manifestURL,
+		"",
+		"author-1",
+		pubB64,
+		signature,
+		timestamp,
+		videoHash,
+		"platformA",
+	)
 	if err != nil {
 		t.Fatalf("upload video: %v", err)
 	}
@@ -72,10 +99,7 @@ func TestUploadServiceStoresChunksAndManifest(t *testing.T) {
 		t.Fatalf("expected 3 chunks, got %d", len(video.Chunks))
 	}
 	if video.Manifest == "" {
-		t.Fatalf("expected manifest path")
-	}
-	if _, err := os.Stat(video.Manifest); err != nil {
-		t.Fatalf("manifest path invalid: %v", err)
+		t.Fatalf("expected manifest url")
 	}
 	if video.ManifestHash == "" || video.AuthorPublicKey == "" {
 		t.Fatalf("expected manifest hash and author public key")

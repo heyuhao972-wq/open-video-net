@@ -5,54 +5,63 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
+	videostorage "video-storage"
+
 	"video-platform/index"
 	"video-platform/model"
-	"video-platform/storage"
 )
 
 type UploadService struct {
 	videoService *VideoService
-	storage      *storage.StorageClient
 	indexClient  *index.Client
 }
 
-func NewUploadService(videoService *VideoService, storageClient *storage.StorageClient, indexClient *index.Client) *UploadService {
+func NewUploadService(videoService *VideoService, indexClient *index.Client) *UploadService {
 
 	return &UploadService{
 		videoService: videoService,
-		storage:      storageClient,
 		indexClient:  indexClient,
 	}
 
 }
 
-func (s *UploadService) UploadVideo(title string, description string, tags []string, filePath string, filename string, coverPath string, authorID string, authorPublicKey string, authorSignature string, authorTimestamp int64, videoHash string, platformID string) (model.Video, error) {
-	result, err := s.storage.Upload(filePath)
-	if err != nil {
-		return model.Video{}, fmt.Errorf("store video failed: %w", err)
-	}
-
-	if result.VideoHash != "" && videoHash != "" && result.VideoHash != videoHash {
-		return model.Video{}, fmt.Errorf("video_hash mismatch")
-	}
-	if videoHash == "" {
-		videoHash = result.VideoHash
+func (s *UploadService) RegisterVideoFromStorage(
+	title string,
+	description string,
+	tags []string,
+	filename string,
+	coverPath string,
+	storageID string,
+	chunks []string,
+	manifestURL string,
+	manifestHash string,
+	authorID string,
+	authorPublicKey string,
+	authorSignature string,
+	authorTimestamp int64,
+	videoHash string,
+	platformID string,
+) (model.Video, error) {
+	if storageID == "" || manifestURL == "" {
+		return model.Video{}, fmt.Errorf("storage_id and manifest_url required")
 	}
 
 	if err := s.verifyAuthorProof(authorPublicKey, authorSignature, authorTimestamp, videoHash); err != nil {
 		return model.Video{}, fmt.Errorf("author signature invalid: %w", err)
 	}
 
-	if err := s.storage.SetManifestProof(result.ManifestPath, authorPublicKey, authorSignature, videoHash, authorTimestamp); err != nil {
-		return model.Video{}, fmt.Errorf("set manifest proof failed: %w", err)
-	}
-
-	manifestHash, err := s.storage.ComputeManifestHash(result.ManifestPath, authorPublicKey, videoHash, authorTimestamp)
-	if err != nil {
-		return model.Video{}, fmt.Errorf("manifest hash failed: %w", err)
+	if manifestHash == "" {
+		hash, err := computeManifestHashFromURL(manifestURL, authorPublicKey, videoHash, authorTimestamp)
+		if err != nil {
+			return model.Video{}, fmt.Errorf("manifest hash failed: %w", err)
+		}
+		manifestHash = hash
 	}
 
 	video := s.videoService.CreateVideoWithStorage(
@@ -60,11 +69,11 @@ func (s *UploadService) UploadVideo(title string, description string, tags []str
 		description,
 		tags,
 		filename,
-		filePath,
+		"",
 		coverPath,
-		result.StorageID,
-		result.Chunks,
-		result.ManifestPath,
+		storageID,
+		chunks,
+		manifestURL,
 		authorID,
 		authorPublicKey,
 		authorSignature,
@@ -114,4 +123,28 @@ func (s *UploadService) verifyAuthorProof(publicKey string, signatureB64 string,
 
 func buildProofMessage(videoHash string, timestamp int64, publicKey string) string {
 	return strings.Join([]string{videoHash, strconv.FormatInt(timestamp, 10), publicKey}, "|")
+}
+
+func computeManifestHashFromURL(url string, authorPublicKey string, videoHash string, timestamp int64) (string, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("manifest fetch status: %d", resp.StatusCode)
+	}
+	tmp, err := os.CreateTemp("", "manifest-*.json")
+	if err != nil {
+		return "", err
+	}
+	defer os.Remove(tmp.Name())
+	if _, err := io.Copy(tmp, resp.Body); err != nil {
+		_ = tmp.Close()
+		return "", err
+	}
+	if err := tmp.Close(); err != nil {
+		return "", err
+	}
+	return videostorage.ComputeManifestHash(tmp.Name(), authorPublicKey, videoHash, timestamp)
 }

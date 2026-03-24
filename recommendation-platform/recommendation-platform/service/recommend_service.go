@@ -1,19 +1,19 @@
 package service
 
 import (
-	"sort"
-
 	"recommendation-platform/model"
-	"recommendation-platform/pipeline"
-	"recommendation-platform/repository"
+	"sort"
 )
 
 type RecommendService struct {
+	registry *AlgorithmRegistry
 }
 
 func NewRecommendService() *RecommendService {
 
-	return &RecommendService{}
+	return &RecommendService{
+		registry: NewAlgorithmRegistry(),
+	}
 
 }
 
@@ -24,131 +24,11 @@ func (s *RecommendService) Recommend(userID string, recType string, limit int) [
 	if limit > 100 {
 		limit = 100
 	}
-	switch recType {
-	case "latest":
-		return latestVideos(limit)
-	case "hot":
-		return hotVideos(limit)
-	case "following":
-		return followingVideos(userID, limit)
-	default:
-		return s.recommendDefault(userID, limit)
+	if recType == "" {
+		recType = "default"
 	}
-}
-
-func (s *RecommendService) recommendDefault(userID string, limit int) []model.Video {
-
-	engine := pipeline.Engine{
-		Sources: []pipeline.Source{
-			&pipeline.InNetworkSource{},
-			&pipeline.TagSearchSource{},
-			&pipeline.GraphSource{},
-			&pipeline.IndexSource{},
-		},
-		Filters: []pipeline.Filter{
-			&pipeline.PreviouslySeenFilter{},
-			&pipeline.DedupFilter{},
-			&pipeline.AgeFilter{MaxAgeDays: 30},
-		},
-		Scorers: []pipeline.Scorer{
-			&pipeline.ViewsScorer{},
-			&pipeline.BehaviorScorer{},
-			&pipeline.TagSimilarityScorer{},
-			&pipeline.GraphProximityScorer{BoostPerEdge: 3},
-			&pipeline.RecencyScorer{MaxDays: 30},
-			&pipeline.AuthorDiversityScorer{PenaltyPerExtra: 2},
-		},
-		Selector: &pipeline.TopKSelector{},
-		K:        limit,
-	}
-
-	indexVideos := pipeline.LoadIndexVideos(pipeline.Query{})
-	indexMap := map[string]model.Video{}
-	for _, v := range indexVideos {
-		indexMap[v.ID] = v
-	}
-
-	behaviors := repository.GetBehaviors()
-	follows := repository.GetFollows()
-	topTags := topTagsFromBehaviors(behaviors, indexMap, 3)
-
-	graph := pipeline.BuildVideoGraph(indexMap)
-
-	result := engine.Run(pipeline.Query{
-		UserID:      userID,
-		IndexVideos: indexMap,
-		Behaviors:   behaviors,
-		TopTags:     topTags,
-		Follows:     follows,
-		Graph:       graph,
-	})
-	out := make([]model.Video, 0, len(result.Selected))
-	for _, c := range result.Selected {
-		out = append(out, c.Video)
-	}
-	return out
-
-}
-
-func latestVideos(limit int) []model.Video {
-	videos := pipeline.LoadIndexVideos(pipeline.Query{})
-	sort.Slice(videos, func(i, j int) bool {
-		return videos[i].CreatedAt > videos[j].CreatedAt
-	})
-	if len(videos) > limit {
-		return videos[:limit]
-	}
-	return videos
-}
-
-func hotVideos(limit int) []model.Video {
-	videos := pipeline.LoadIndexVideos(pipeline.Query{})
-	behaviors := repository.GetBehaviors()
-	counts := map[string]int{}
-	for _, b := range behaviors {
-		switch b.Type {
-		case "like":
-			counts[b.VideoID] += 3
-		case "share":
-			counts[b.VideoID] += 5
-		case "watch":
-			counts[b.VideoID] += 1
-		}
-	}
-	sort.Slice(videos, func(i, j int) bool {
-		return counts[videos[i].ID] > counts[videos[j].ID]
-	})
-	if len(videos) > limit {
-		return videos[:limit]
-	}
-	return videos
-}
-
-func followingVideos(userID string, limit int) []model.Video {
-	if userID == "" {
-		return []model.Video{}
-	}
-	follows := repository.GetFollows()
-	following := map[string]bool{}
-	for _, f := range follows {
-		if f.UserID == userID && f.Active {
-			following[f.AuthorID] = true
-		}
-	}
-	if len(following) == 0 {
-		return []model.Video{}
-	}
-	videos := pipeline.LoadIndexVideos(pipeline.Query{})
-	out := make([]model.Video, 0)
-	for _, v := range videos {
-		if following[v.AuthorID] {
-			out = append(out, v)
-		}
-	}
-	if len(out) > limit {
-		return out[:limit]
-	}
-	return out
+	algo := s.registry.Get(recType)
+	return algo.Recommend(userID, limit)
 }
 
 func behaviorWeight(t string) int {

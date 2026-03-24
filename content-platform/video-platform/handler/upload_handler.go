@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -31,45 +32,11 @@ func UploadVideo(c *gin.Context) {
 		return
 	}
 
-	file, err := c.FormFile("file")
-
-	if err != nil {
-
+	file, _ := c.FormFile("file")
+	if file != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "file required",
+			"error": "direct upload disabled; upload to storage service first",
 		})
-
-		return
-	}
-
-	savePath := "./uploads"
-
-	if err := os.MkdirAll(savePath, os.ModePerm); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "create upload dir failed",
-		})
-		return
-	}
-
-	safeName := filepath.Base(file.Filename)
-	safeName = strings.ReplaceAll(safeName, "..", "")
-	if safeName == "." || safeName == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "invalid filename",
-		})
-		return
-	}
-
-	path := filepath.Join(savePath, safeName)
-
-	err = c.SaveUploadedFile(file, path)
-
-	if err != nil {
-
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "save failed",
-		})
-
 		return
 	}
 
@@ -140,7 +107,45 @@ func UploadVideo(c *gin.Context) {
 		return
 	}
 
-	video, err := uploadService.UploadVideo(title, description, tags, path, safeName, coverPath, user.ID, user.PublicKey, authorSignature, authorTimestamp, videoHash, cfg.PlatformID)
+	storageID := strings.TrimSpace(c.PostForm("storage_id"))
+	manifestURL := strings.TrimSpace(c.PostForm("manifest_url"))
+	manifestHash := strings.TrimSpace(c.PostForm("manifest_hash"))
+	chunksRaw := strings.TrimSpace(c.PostForm("chunks"))
+	filename := strings.TrimSpace(c.PostForm("filename"))
+	if storageID == "" || manifestURL == "" || chunksRaw == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "storage_id, manifest_url, chunks required",
+		})
+		return
+	}
+	var chunks []string
+	if err := json.Unmarshal([]byte(chunksRaw), &chunks); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid chunks json",
+		})
+		return
+	}
+	if filename == "" {
+		filename = "video"
+	}
+
+	video, err := uploadService.RegisterVideoFromStorage(
+		title,
+		description,
+		tags,
+		filename,
+		coverPath,
+		storageID,
+		chunks,
+		manifestURL,
+		manifestHash,
+		user.ID,
+		user.PublicKey,
+		authorSignature,
+		authorTimestamp,
+		videoHash,
+		cfg.PlatformID,
+	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),

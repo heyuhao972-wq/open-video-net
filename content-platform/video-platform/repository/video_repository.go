@@ -43,6 +43,18 @@ func (r *VideoRepository) FindAll() []model.Video {
 	return list
 }
 
+func (r *VideoRepository) FindAllByStatus(status string) []model.Video {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+	out := []model.Video{}
+	for _, v := range r.videos {
+		if status == "" || v.Status == status || (status == "approved" && v.Status == "") {
+			out = append(out, v)
+		}
+	}
+	return out
+}
+
 func (r *VideoRepository) FindByID(id string) (model.Video, bool) {
 
 	r.lock.RLock()
@@ -61,6 +73,21 @@ func (r *VideoRepository) FindByAuthor(authorID string) []model.Video {
 	for _, v := range r.videos {
 		if v.AuthorID == authorID {
 			list = append(list, v)
+		}
+	}
+	return list
+}
+
+func (r *VideoRepository) FindByAuthorAndStatus(authorID string, status string) []model.Video {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+
+	list := []model.Video{}
+	for _, v := range r.videos {
+		if v.AuthorID == authorID {
+			if status == "" || v.Status == status || (status == "approved" && v.Status == "") {
+				list = append(list, v)
+			}
 		}
 	}
 	return list
@@ -113,6 +140,46 @@ func (r *VideoRepository) Search(q string, tag string) []model.Video {
 		}
 	}
 	return out
+}
+
+func (r *VideoRepository) SearchByStatus(q string, tag string, status string) []model.Video {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+
+	out := []model.Video{}
+	for _, v := range r.videos {
+		if status != "" && v.Status != status && !(status == "approved" && v.Status == "") {
+			continue
+		}
+		if tag != "" {
+			if !hasTag(v.Tags, tag) {
+				continue
+			}
+		}
+		if q == "" {
+			out = append(out, v)
+			continue
+		}
+		if containsFoldVideo(v.Title, q) || containsFoldVideo(v.Description, q) || containsFoldVideo(v.AuthorID, q) {
+			out = append(out, v)
+		}
+	}
+	return out
+}
+
+func (r *VideoRepository) UpdateReview(id string, status string, reason string, reviewer string, reviewedAt int64) (model.Video, bool) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	v, ok := r.videos[id]
+	if !ok {
+		return model.Video{}, false
+	}
+	v.Status = status
+	v.ReviewReason = reason
+	v.ReviewedBy = reviewer
+	v.ReviewedAt = reviewedAt
+	r.videos[id] = v
+	return v, true
 }
 
 func hasTag(tags []string, tag string) bool {

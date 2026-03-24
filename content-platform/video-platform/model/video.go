@@ -19,4 +19,8 @@ type Video struct {
 	Manifest        string   `json:"manifest"`
 	ManifestHash    string   `json:"manifest_hash"`
 	CreatedAt       int64    `json:"created_at"`
+	Status          string   `json:"status"`
+	ReviewReason    string   `json:"review_reason"`
+	ReviewedBy      string   `json:"reviewed_by"`
+	ReviewedAt      int64    `json:"reviewed_at"`
 }

@@ -6,25 +6,29 @@ import (
 )
 
 type Config struct {
-	Port       string
-	JWTSecret  string
-	IndexBase  string
-	PlatformID string
-	AcceptTags []string
-	DBPath     string
-	AdminToken string
+	Port           string
+	JWTSecret      string
+	IndexBase      string
+	PlatformID     string
+	AcceptTags     []string
+	DBPath         string
+	AdminToken     string
+	StorageBase    string
+	ModerationMode string
 }
 
 func LoadConfig() *Config {
 
 	return &Config{
-		Port:       envString("PLATFORM_PORT", "8080"),
-		JWTSecret:  envString("JWT_SECRET", "dev-secret"),
-		IndexBase:  envString("INDEX_BASE", ""),
-		PlatformID: envString("PLATFORM_ID", "platformA"),
-		AcceptTags: envList("ACCEPT_TAGS"),
-		DBPath:     envString("DB_PATH", "./data/platform.db"),
-		AdminToken: envString("ADMIN_TOKEN", ""),
+		Port:           envString("PLATFORM_PORT", "8080"),
+		JWTSecret:      envString("JWT_SECRET", "dev-secret"),
+		IndexBase:      envString("INDEX_BASE", ""),
+		PlatformID:     envString("PLATFORM_ID", "platformA"),
+		AcceptTags:     envList("ACCEPT_TAGS"),
+		DBPath:         envString("DB_PATH", "./data/platform.db"),
+		AdminToken:     envString("ADMIN_TOKEN", ""),
+		StorageBase:    envString("STORAGE_BASE", ""),
+		ModerationMode: envString("MODERATION_MODE", "auto"),
 	}
 
 }

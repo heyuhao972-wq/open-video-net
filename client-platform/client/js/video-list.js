@@ -300,3 +300,12 @@ if (loadMoreBtn){
         loadVideos()
     })
 }
+
+const logoutBtn = document.getElementById("logout-btn")
+if (logoutBtn){
+    logoutBtn.addEventListener("click", e=>{
+        e.preventDefault()
+        logoutUser()
+        window.location.href = "login.html"
+    })
+}

@@ -8,6 +8,9 @@ import (
 
 func RegisterRoutes(r *gin.Engine) {
 
+	r.GET("/health", handler.Health)
+	r.OPTIONS("/*path", func(c *gin.Context) { c.Status(204) })
+
 	r.GET("/recommend", handler.Recommend)
 
 	r.POST("/behavior", handler.AddBehavior)

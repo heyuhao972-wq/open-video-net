@@ -3,7 +3,9 @@ package service
 import (
 	"errors"
 	"strings"
+	"time"
 
+	"video-platform/config"
 	"video-platform/model"
 	"video-platform/repository"
 )
@@ -16,7 +18,7 @@ func NewCommentService(repo *repository.CommentRepository) *CommentService {
 	return &CommentService{repo: repo}
 }
 
-func (s *CommentService) Create(videoID string, userID string, content string) (model.Comment, error) {
+func (s *CommentService) Create(videoID string, userID string, content string, parentID int) (model.Comment, error) {
 	if s.repo == nil {
 		return model.Comment{}, errors.New("comment repo not initialized")
 	}
@@ -34,7 +36,21 @@ func (s *CommentService) Create(videoID string, userID string, content string) (
 		return model.Comment{}, errors.New("content too long")
 	}
 
-	c, err := s.repo.Add(videoID, userID, content)
+	status := "approved"
+	if strings.EqualFold(config.LoadConfig().ModerationMode, "review") {
+		status = "pending"
+	}
+	if parentID < 0 {
+		parentID = 0
+	}
+	if parentID > 0 {
+		parent, ok := s.repo.Get(parentID)
+		if !ok || parent.VideoID != videoID {
+			return model.Comment{}, errors.New("invalid parent_id")
+		}
+	}
+
+	c, err := s.repo.Add(videoID, userID, content, parentID, status)
 	if err != nil {
 		return model.Comment{}, err
 	}
@@ -48,7 +64,10 @@ func (s *CommentService) List(videoID string) ([]model.Comment, error) {
 	if strings.TrimSpace(videoID) == "" {
 		return nil, errors.New("video_id required")
 	}
-	return s.repo.ListByVideo(videoID), nil
+	if strings.EqualFold(config.LoadConfig().ModerationMode, "review") {
+		return s.repo.ListByVideo(videoID), nil
+	}
+	return s.repo.ListByVideoAll(videoID), nil
 }
 
 func (s *CommentService) Count(videoID string) (int, error) {
@@ -58,7 +77,10 @@ func (s *CommentService) Count(videoID string) (int, error) {
 	if strings.TrimSpace(videoID) == "" {
 		return 0, errors.New("video_id required")
 	}
-	return s.repo.CountByVideo(videoID), nil
+	if strings.EqualFold(config.LoadConfig().ModerationMode, "review") {
+		return s.repo.CountByVideo(videoID), nil
+	}
+	return s.repo.CountByVideoAll(videoID), nil
 }
 
 func (s *CommentService) Delete(id int, userID string, allowAdmin bool) error {
@@ -95,6 +117,30 @@ func (s *CommentService) Like(id int, userID string) (model.Comment, bool, error
 	}
 	if !liked {
 		return c, false, errors.New("already liked")
+	}
+	return c, true, nil
+}
+
+func (s *CommentService) ListByStatus(status string) ([]model.Comment, error) {
+	if s.repo == nil {
+		return nil, errors.New("comment repo not initialized")
+	}
+	return s.repo.ListByStatus(status), nil
+}
+
+func (s *CommentService) Review(id int, status string, reason string, reviewer string) (model.Comment, bool, error) {
+	if s.repo == nil {
+		return model.Comment{}, false, errors.New("comment repo not initialized")
+	}
+	if id <= 0 {
+		return model.Comment{}, false, errors.New("invalid id")
+	}
+	if status != "approved" && status != "rejected" && status != "pending" {
+		return model.Comment{}, false, errors.New("invalid status")
+	}
+	c, ok := s.repo.UpdateReview(id, status, reason, reviewer, time.Now().Unix())
+	if !ok {
+		return model.Comment{}, false, errors.New("comment not found")
 	}
 	return c, true, nil
 }

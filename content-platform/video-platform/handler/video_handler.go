@@ -22,7 +22,7 @@ func ListVideos(c *gin.Context) {
 	}
 
 	page, limit := parsePageLimit(c.Query("page"), c.Query("limit"))
-	videos := videoService.ListVideos()
+	videos := videoService.ListVideosByStatus("approved")
 	videos = paginateVideos(videos, page, limit)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -42,7 +42,7 @@ func SearchVideos(c *gin.Context) {
 	q := strings.TrimSpace(c.Query("q"))
 	tag := strings.TrimSpace(c.Query("tag"))
 	page, limit := parsePageLimit(c.Query("page"), c.Query("limit"))
-	videos := videoService.Search(q, tag)
+	videos := videoService.SearchByStatus(q, tag, "approved")
 	videos = paginateVideos(videos, page, limit)
 	c.JSON(http.StatusOK, gin.H{
 		"videos": videos,
@@ -95,7 +95,7 @@ func ListUserVideos(c *gin.Context) {
 		return
 	}
 	page, limit := parsePageLimit(c.Query("page"), c.Query("limit"))
-	videos := videoService.ListByAuthor(authorID)
+	videos := videoService.ListByAuthorAndStatus(authorID, "approved")
 	videos = paginateVideos(videos, page, limit)
 	c.JSON(http.StatusOK, gin.H{"videos": videos})
 }
@@ -233,7 +233,7 @@ func GetVideo(c *gin.Context) {
 
 	id := c.Param("id")
 	video, ok := videoService.GetVideo(id)
-	if ok {
+	if ok && isVideoAvailable(video.Status) {
 		c.JSON(http.StatusOK, video)
 		return
 	}
@@ -260,6 +260,27 @@ func StreamVideo(c *gin.Context) {
 		})
 		return
 	}
+	if !isVideoAvailable(video.Status) {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "video not available",
+		})
+		return
+	}
+
+	cfg := config.LoadConfig()
+	if cfg.StorageBase != "" {
+		storageID := video.StorageID
+		if storageID == "" {
+			storageID = extractStorageIDFromManifest(video.Manifest)
+		}
+		if storageID != "" {
+			c.Redirect(http.StatusFound, strings.TrimRight(cfg.StorageBase, "/")+"/stream/"+storageID)
+			return
+		}
+	}
+	if redirectFromManifest(c, video.Manifest) {
+		return
+	}
 
 	if video.FilePath == "" {
 		c.JSON(http.StatusNotFound, gin.H{
@@ -272,7 +293,6 @@ func StreamVideo(c *gin.Context) {
 	c.File(video.FilePath)
 
 	go func(id string) {
-		cfg := config.LoadConfig()
 		client := index.NewClient(cfg.IndexBase)
 		_ = client.IncrementViews(id)
 	}(video.ID)
@@ -294,6 +314,12 @@ func GetManifest(c *gin.Context) {
 		})
 		return
 	}
+	if !isVideoAvailable(video.Status) {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "video not available",
+		})
+		return
+	}
 
 	if video.Manifest == "" {
 		c.JSON(http.StatusNotFound, gin.H{
@@ -301,22 +327,33 @@ func GetManifest(c *gin.Context) {
 		})
 		return
 	}
-
+	if strings.HasPrefix(video.Manifest, "http://") || strings.HasPrefix(video.Manifest, "https://") {
+		c.Redirect(http.StatusFound, video.Manifest)
+		return
+	}
+	if cfg := config.LoadConfig(); cfg.StorageBase != "" && video.StorageID != "" {
+		c.Redirect(http.StatusFound, strings.TrimRight(cfg.StorageBase, "/")+"/manifest/"+video.StorageID)
+		return
+	}
 	c.File(video.Manifest)
 }
 
 func GetChunk(c *gin.Context) {
-	if storageClient == nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "storage client not initialized",
-		})
-		return
-	}
-
 	hash := c.Param("hash")
 	if hash == "" {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "hash required",
+		})
+		return
+	}
+
+	if cfg := config.LoadConfig(); cfg.StorageBase != "" {
+		c.Redirect(http.StatusFound, strings.TrimRight(cfg.StorageBase, "/")+"/chunk/"+hash)
+		return
+	}
+	if storageClient == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "storage client not initialized",
 		})
 		return
 	}
@@ -330,4 +367,46 @@ func GetChunk(c *gin.Context) {
 	}
 
 	c.Data(http.StatusOK, "application/octet-stream", data)
+}
+
+func isVideoAvailable(status string) bool {
+	if status == "" || status == "approved" {
+		return true
+	}
+	cfg := config.LoadConfig()
+	if status == "pending" && strings.EqualFold(cfg.ModerationMode, "auto") {
+		return true
+	}
+	return false
+}
+
+func extractStorageIDFromManifest(manifest string) string {
+	if manifest == "" {
+		return ""
+	}
+	idx := strings.LastIndex(manifest, "/manifest/")
+	if idx == -1 {
+		return ""
+	}
+	return strings.TrimPrefix(manifest[idx:], "/manifest/")
+}
+
+func redirectFromManifest(c *gin.Context, manifest string) bool {
+	if manifest == "" {
+		return false
+	}
+	if strings.HasPrefix(manifest, "http://") || strings.HasPrefix(manifest, "https://") {
+		idx := strings.LastIndex(manifest, "/manifest/")
+		if idx == -1 {
+			return false
+		}
+		base := strings.TrimRight(manifest[:idx], "/")
+		id := strings.TrimPrefix(manifest[idx:], "/manifest/")
+		if id == "" {
+			return false
+		}
+		c.Redirect(http.StatusFound, base+"/stream/"+id)
+		return true
+	}
+	return false
 }

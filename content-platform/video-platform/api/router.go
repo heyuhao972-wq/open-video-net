@@ -46,5 +46,9 @@ func RegisterRoutes(r *gin.Engine) {
 	r.GET("/admin/bans", handler.RequireAdmin(), handler.ListBans)
 	r.DELETE("/admin/comment/:id", handler.RequireAdmin(), handler.AdminDeleteComment)
 	r.DELETE("/admin/video/:id", handler.RequireAdmin(), handler.AdminDeleteVideo)
+	r.GET("/admin/moderation/videos", handler.RequireAdmin(), handler.ListPendingVideos)
+	r.POST("/admin/moderation/video/:id", handler.RequireAdmin(), handler.ReviewVideo)
+	r.GET("/admin/moderation/comments", handler.RequireAdmin(), handler.ListPendingComments)
+	r.POST("/admin/moderation/comment/:id", handler.RequireAdmin(), handler.ReviewComment)
 
 }
