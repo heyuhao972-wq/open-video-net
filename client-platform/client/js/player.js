@@ -59,8 +59,33 @@ async function loadMeta(){
     const data = await res.json()
     const meta = document.getElementById("meta")
     if (data && data.title){
-        meta.innerText = "Title: " + data.title + " | Author: " + (data.author_id || "unknown")
-        meta.dataset.authorId = data.author_id || ""
+        let authorLabel = data.author_id || "未知"
+        let authorId = data.author_id || ""
+        if (data.author_id){
+            try {
+                const profile = await getProfileById(data.author_id)
+                if (profile && profile.user && profile.user.nickname){
+                    authorLabel = profile.user.nickname
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
+        meta.dataset.authorId = authorId
+        meta.innerHTML = ""
+        const titleSpan = document.createElement("span")
+        titleSpan.innerText = "标题: " + data.title + " | 作者: "
+        meta.appendChild(titleSpan)
+        if (authorId){
+            const authorLink = document.createElement("a")
+            authorLink.href = "user.html?id=" + encodeURIComponent(authorId)
+            authorLink.innerText = authorLabel
+            meta.appendChild(authorLink)
+        } else {
+            const authorSpan = document.createElement("span")
+            authorSpan.innerText = authorLabel
+            meta.appendChild(authorSpan)
+        }
     }
 }
 
@@ -78,7 +103,7 @@ async function loadStats(){
         return
     }
     const comments = commentCount && commentCount.count ? commentCount.count : 0
-    box.innerText = "views: " + (stats.watches || 0) + " | likes: " + (stats.likes || 0) + " | shares: " + (stats.shares || 0) + " | favorites: " + (stats.favorites || 0) + " | comments: " + comments
+    box.innerText = "观看: " + (stats.watches || 0) + " | 点赞: " + (stats.likes || 0) + " | 分享: " + (stats.shares || 0) + " | 收藏: " + (stats.favorites || 0) + " | 评论: " + comments
 }
 
 loadStats()
@@ -113,18 +138,25 @@ async function loadComments(){
             li.style.marginLeft = String(depth * 16) + "px"
         }
         const text = document.createElement("span")
-        text.innerText = (c.user_id || "user") + ": " + (c.content || "") + " (" + (c.likes || 0) + ")"
+        text.innerText = (c.user_id || "用户") + ": " + (c.content || "") + " (" + (c.likes || 0) + ")"
         li.appendChild(text)
+        if (c.user_id){
+            getProfileById(c.user_id).then(profile=>{
+                if (profile && profile.user && profile.user.nickname){
+                    text.innerText = profile.user.nickname + ": " + (c.content || "") + " (" + (c.likes || 0) + ")"
+                }
+            }).catch(()=>{})
+        }
 
         const replyBtn = document.createElement("button")
-        replyBtn.innerText = "Reply"
+        replyBtn.innerText = "回复"
         replyBtn.addEventListener("click", ()=>{
             setReplyTarget(c.id, c.user_id || "user")
         })
         li.appendChild(replyBtn)
 
         const likeBtn = document.createElement("button")
-        likeBtn.innerText = "Like"
+        likeBtn.innerText = "点赞"
         likeBtn.addEventListener("click", async ()=>{
             const res = await likeComment(platform, c.id)
             if (res.error){
@@ -137,7 +169,7 @@ async function loadComments(){
         li.appendChild(likeBtn)
 
         const delBtn = document.createElement("button")
-        delBtn.innerText = "Delete"
+        delBtn.innerText = "删除"
         delBtn.addEventListener("click", async ()=>{
             const res = await deleteComment(platform, c.id)
             if (res.error){
@@ -166,7 +198,7 @@ let replyTargetId = 0
 function setReplyTarget(id, label){
     replyTargetId = id || 0
     if (replyBox){
-        replyBox.innerText = replyTargetId ? ("Replying to " + label + " (id " + replyTargetId + ")") : ""
+        replyBox.innerText = replyTargetId ? ("回复 " + label + " (id " + replyTargetId + ")") : ""
     }
 }
 
@@ -269,7 +301,7 @@ if (followBtn){
         const meta = document.getElementById("meta")
         const authorId = meta.dataset.authorId
         if (!authorId){
-            alert("author id missing")
+            alert("作者ID缺失")
             return
         }
         const res = await followAuthor(authorId)
@@ -277,7 +309,7 @@ if (followBtn){
             alert(res.error)
             return
         }
-        alert("followed")
+        alert("已关注")
     })
 }
 
@@ -287,7 +319,7 @@ if (unfollowBtn){
         const meta = document.getElementById("meta")
         const authorId = meta.dataset.authorId
         if (!authorId){
-            alert("author id missing")
+            alert("作者ID缺失")
             return
         }
         const res = await unfollowAuthor(authorId)
@@ -295,6 +327,6 @@ if (unfollowBtn){
             alert(res.error)
             return
         }
-        alert("unfollowed")
+        alert("已取消关注")
     })
 }

@@ -46,6 +46,17 @@ async function renderVideoURIs(uris, append){
         } catch (e) {
             // ignore
         }
+        let authorName = ""
+        if (detail && detail.author_id){
+            try {
+                const profile = await getProfileById(detail.author_id)
+                if (profile && profile.user && profile.user.nickname){
+                    authorName = profile.user.nickname
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
         let stats = null
         let commentCount = null
         try {
@@ -55,22 +66,41 @@ async function renderVideoURIs(uris, append){
             // ignore
         }
         const li = document.createElement("li")
+        li.classList.add("video-card")
         const link = document.createElement("a")
         link.href = "player.html?uri=" + encodeURIComponent(uri)
+        link.className = "video-title"
         link.innerText = (detail && detail.title) ? detail.title : info.videoId
-        li.appendChild(link)
+
+        const thumb = document.createElement("div")
+        thumb.className = "video-thumb"
         if (detail && detail.cover_path){
             const img = document.createElement("img")
             img.src = getPlatformBase(info.platformId) + "/" + detail.cover_path.replace(/^\.?[\\/]/,"")
-            img.width = 120
-            li.appendChild(img)
+            thumb.appendChild(img)
+        } else {
+            thumb.innerText = "No cover"
+        }
+
+        const metaBox = document.createElement("div")
+        metaBox.className = "video-meta"
+        metaBox.appendChild(link)
+
+        if (authorName){
+            const author = document.createElement("div")
+            author.className = "video-author"
+            author.innerText = "作者: " + authorName
+            metaBox.appendChild(author)
         }
         if (stats && !stats.error){
             const meta = document.createElement("div")
+            meta.className = "video-stats"
             const comments = commentCount && commentCount.count ? commentCount.count : 0
-            meta.innerText = "views: " + (stats.watches || 0) + " | likes: " + (stats.likes || 0) + " | shares: " + (stats.shares || 0) + " | favorites: " + (stats.favorites || 0) + " | comments: " + comments
-            li.appendChild(meta)
+            meta.innerText = "观看 " + (stats.watches || 0) + " · 点赞 " + (stats.likes || 0) + " · 分享 " + (stats.shares || 0) + " · 收藏 " + (stats.favorites || 0) + " · 评论 " + comments
+            metaBox.appendChild(meta)
         }
+        li.appendChild(thumb)
+        li.appendChild(metaBox)
         list.appendChild(li)
     }
 }
@@ -85,29 +115,58 @@ async function renderVideoObjects(videos, append){
     }
     for (const v of videos){
         const li = document.createElement("li")
+        li.classList.add("video-card")
         const link = document.createElement("a")
         const platformId = v.platform_id || "platformA"
         link.href = "player.html?platform=" + encodeURIComponent(platformId) + "&id=" + v.id
-        link.innerText = v.title
-        li.appendChild(link)
+        link.className = "video-title"
+        link.innerText = v.title || v.id
+
+        const thumb = document.createElement("div")
+        thumb.className = "video-thumb"
         if (v.cover_path){
             const img = document.createElement("img")
             img.src = getPlatformBase(platformId) + "/" + v.cover_path.replace(/^\.?[\\/]/,"")
-            img.width = 120
-            li.appendChild(img)
+            thumb.appendChild(img)
+        } else {
+            thumb.innerText = "No cover"
+        }
+
+        const metaBox = document.createElement("div")
+        metaBox.className = "video-meta"
+        metaBox.appendChild(link)
+        let authorName = ""
+        if (v.author_id){
+            try {
+                const profile = await getProfileById(v.author_id)
+                if (profile && profile.user && profile.user.nickname){
+                    authorName = profile.user.nickname
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
+        if (authorName){
+            const author = document.createElement("div")
+            author.className = "video-author"
+            author.innerText = "作者: " + authorName
+            metaBox.appendChild(author)
         }
         try {
             const stats = await getVideoStats(platformId, v.id)
             const commentCount = await getCommentCount(platformId, v.id)
             if (stats && !stats.error){
                 const meta = document.createElement("div")
+                meta.className = "video-stats"
                 const comments = commentCount && commentCount.count ? commentCount.count : 0
-                meta.innerText = "views: " + (stats.watches || 0) + " | likes: " + (stats.likes || 0) + " | shares: " + (stats.shares || 0) + " | favorites: " + (stats.favorites || 0) + " | comments: " + comments
-                li.appendChild(meta)
+                meta.innerText = "观看 " + (stats.watches || 0) + " · 点赞 " + (stats.likes || 0) + " · 分享 " + (stats.shares || 0) + " · 收藏 " + (stats.favorites || 0) + " · 评论 " + comments
+                metaBox.appendChild(meta)
             }
         } catch (e) {
             // ignore
         }
+        li.appendChild(thumb)
+        li.appendChild(metaBox)
         list.appendChild(li)
     }
 }

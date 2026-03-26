@@ -1,14 +1,14 @@
-const API_BASE = "http://localhost:8080"
+﻿const API_BASE = "http://localhost:9000"
 const STREAM_BASE = "http://localhost:8081"
-const STORAGE_BASE = "http://localhost:8085"
+const STORAGE_BASE = "http://localhost:9001"
 
 const PLATFORM_MAP = {
-    platformA: "http://localhost:8080",
+    platformA: "http://localhost:9000",
     platformB: "http://localhost:8084"
 }
 
 const RECOMMEND_OPTIONS = [
-    {id:"recA", label:"Recommend A", url:"http://localhost:8082"}
+    {id:"recA", label:"鎺ㄨ崘A", url:"http://localhost:9002"}
 ]
 
 function getPlatformBase(platformId){
@@ -19,8 +19,23 @@ function getRecommendOptions(){
     return RECOMMEND_OPTIONS.slice()
 }
 
+function normalizeRecommendBase(url){
+    if (!url){
+        return ""
+    }
+    if (url.indexOf("localhost:8082") >= 0){
+        return "http://localhost:9002"
+    }
+    return url
+}
+
 function getRecommendBase(){
-    return localStorage.getItem("recommend_base") || RECOMMEND_OPTIONS[0].url
+    const stored = localStorage.getItem("recommend_base")
+    const normalized = normalizeRecommendBase(stored)
+    if (normalized && normalized !== stored){
+        localStorage.setItem("recommend_base", normalized)
+    }
+    return normalized || RECOMMEND_OPTIONS[0].url
 }
 
 function setRecommendBase(url){

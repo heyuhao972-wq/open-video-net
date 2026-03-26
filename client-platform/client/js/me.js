@@ -70,11 +70,25 @@ async function loadMyLikes(){
     }
     list.innerHTML = ""
     const videos = res.videos || []
-    videos.forEach(id=>{
+    for (const id of videos){
         const li = document.createElement("li")
-        li.innerText = id
+        const info = parseVideoURI(id)
+        const platformId = info ? info.platformId : "platformA"
+        const videoId = info ? info.videoId : id
+        const link = document.createElement("a")
+        link.href = "player.html?platform=" + encodeURIComponent(platformId) + "&id=" + encodeURIComponent(videoId)
+        link.innerText = videoId
+        li.appendChild(link)
         list.appendChild(li)
-    })
+        try {
+            const data = await getVideoByPlatform(platformId, videoId)
+            if (data && data.title){
+                link.innerText = data.title
+            }
+        } catch (e) {
+            // ignore fetch errors
+        }
+    }
 }
 
 async function loadMyFavorites(){
@@ -89,11 +103,25 @@ async function loadMyFavorites(){
     }
     list.innerHTML = ""
     const videos = res.videos || []
-    videos.forEach(id=>{
+    for (const id of videos){
         const li = document.createElement("li")
-        li.innerText = id
+        const info = parseVideoURI(id)
+        const platformId = info ? info.platformId : "platformA"
+        const videoId = info ? info.videoId : id
+        const link = document.createElement("a")
+        link.href = "player.html?platform=" + encodeURIComponent(platformId) + "&id=" + encodeURIComponent(videoId)
+        link.innerText = videoId
+        li.appendChild(link)
         list.appendChild(li)
-    })
+        try {
+            const data = await getVideoByPlatform(platformId, videoId)
+            if (data && data.title){
+                link.innerText = data.title
+            }
+        } catch (e) {
+            // ignore fetch errors
+        }
+    }
 }
 
 async function loadMyHistory(){
@@ -108,7 +136,7 @@ async function loadMyHistory(){
     }
     list.innerHTML = ""
     const items = res.history || []
-    items.forEach(h=>{
+    for (const h of items){
         const li = document.createElement("li")
         const platformId = h.platform_id || "platformA"
         const link = document.createElement("a")
@@ -116,7 +144,15 @@ async function loadMyHistory(){
         link.innerText = h.video_id
         li.appendChild(link)
         list.appendChild(li)
-    })
+        try {
+            const data = await getVideoByPlatform(platformId, h.video_id)
+            if (data && data.title){
+                link.innerText = data.title
+            }
+        } catch (e) {
+            // ignore fetch errors
+        }
+    }
 }
 
 async function loadMyFollows(){
@@ -131,11 +167,22 @@ async function loadMyFollows(){
     }
     list.innerHTML = ""
     const users = res.users || []
-    users.forEach(id=>{
+    for (const id of users){
         const li = document.createElement("li")
-        li.innerText = id
+        const link = document.createElement("a")
+        link.href = "user.html?id=" + encodeURIComponent(id)
+        link.innerText = id
+        li.appendChild(link)
         list.appendChild(li)
-    })
+        try {
+            const data = await getProfileById(id)
+            if (data && data.user && data.user.nickname){
+                link.innerText = data.user.nickname
+            }
+        } catch (e) {
+            // ignore fetch errors
+        }
+    }
 }
 
 async function loadMyFollowers(){
@@ -150,11 +197,22 @@ async function loadMyFollowers(){
     }
     list.innerHTML = ""
     const users = res.users || []
-    users.forEach(id=>{
+    for (const id of users){
         const li = document.createElement("li")
-        li.innerText = id
+        const link = document.createElement("a")
+        link.href = "user.html?id=" + encodeURIComponent(id)
+        link.innerText = id
+        li.appendChild(link)
         list.appendChild(li)
-    })
+        try {
+            const data = await getProfileById(id)
+            if (data && data.user && data.user.nickname){
+                link.innerText = data.user.nickname
+            }
+        } catch (e) {
+            // ignore fetch errors
+        }
+    }
 }
 
 const form = document.getElementById("nickname-form")

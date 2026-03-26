@@ -2,40 +2,40 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Register</title>
+<title>注册</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
 <div class="container">
   <div class="topbar">
-    <div class="brand">Create Account</div>
+    <div class="brand">创建账号</div>
     <div class="nav">
-      <a href="index.html">Home</a>
-      <a href="login.html">Login</a>
+      <a href="index.html">首页</a>
+      <a href="login.html">登录</a>
     </div>
   </div>
 
   <div class="hero">
-    Generate or import a keypair, then register your public key.
+    生成或导入密钥对，然后注册您的公钥。
   </div>
 
   <div class="panel stack">
     <form id="register-form">
-      <input type="text" id="public_key" placeholder="Public Key (optional if imported)">
-      <button type="submit">Register</button>
+      <input type="text" id="public_key" placeholder="公钥（如果已导入则可选）">
+      <button type="submit">注册</button>
     </form>
   </div>
 
   <div class="section">
-    <h2>Keys</h2>
+    <h2>密钥</h2>
     <div class="panel stack">
-      <textarea id="key-json" rows="6" placeholder="Paste key JSON here"></textarea>
+      <textarea id="key-json" rows="6" placeholder="在此粘贴密钥JSON"></textarea>
       <div class="footer-actions">
-        <button type="button" id="generate-keys">Generate Keys</button>
-        <button type="button" id="import-keys">Import Keys</button>
-        <button type="button" id="export-keys" class="secondary">Export Keys</button>
-        <button type="button" id="download-keys" class="secondary">Download Keys</button>
+        <button type="button" id="generate-keys">生成密钥</button>
+        <button type="button" id="import-keys">导入密钥</button>
+        <button type="button" id="export-keys" class="secondary">导出密钥</button>
+        <button type="button" id="download-keys" class="secondary">下载密钥</button>
       </div>
     </div>
   </div>

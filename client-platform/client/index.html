@@ -2,76 +2,76 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Video Platform</title>
+<title>视频平台</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
 <div class="container">
     <div class="topbar">
-      <div class="brand">Video Platform</div>
+      <div class="brand">视频平台</div>
       <div class="nav">
-        <a href="upload.html">Upload</a>
-        <a href="login.html">Login</a>
-        <a href="#" id="logout-btn">Logout</a>
-        <a href="follow.html">Follow</a>
-        <a href="me.html">Me</a>
-        <a href="notifications.html">Notifications</a>
+        <a href="upload.html">上传</a>
+        <a href="login.html">登录</a>
+        <a href="#" id="logout-btn">退出</a>
+        <a href="follow.html">关注</a>
+        <a href="me.html">我的</a>
+        <a href="notifications.html">通知</a>
       </div>
     </div>
 
   <div class="hero">
-    Discover videos across platforms and switch recommendation sources on the fly.
+    发现跨平台视频，实时切换推荐来源。
   </div>
 
   <div class="grid">
     <div class="panel recommend-select">
-      <label for="recommend-select">Recommendation</label>
+      <label for="recommend-select">推荐</label>
       <form>
         <select id="recommend-select"></select>
-        <input type="text" id="recommend-custom" placeholder="Custom recommend URL">
-        <button type="button" id="recommend-apply">Apply</button>
+        <input type="text" id="recommend-custom" placeholder="自定义推荐URL">
+        <button type="button" id="recommend-apply">应用</button>
       </form>
     </div>
 
     <div class="panel recommend-type">
-      <label for="recommend-type">Recommend Type</label>
+      <label for="recommend-type">推荐类型</label>
       <select id="recommend-type">
-        <option value="">Home</option>
-        <option value="hot">Hot</option>
-        <option value="latest">Latest</option>
-        <option value="following">Following</option>
+        <option value="">首页</option>
+        <option value="hot">热门</option>
+        <option value="latest">最新</option>
+        <option value="following">关注</option>
       </select>
     </div>
 
     <div class="panel stack">
       <form id="search-form">
-        <input type="text" id="search-input" placeholder="Search videos">
-        <button type="submit">Search</button>
+        <input type="text" id="search-input" placeholder="搜索视频">
+        <button type="submit">搜索</button>
       </form>
 
       <form id="user-search-form">
-        <input type="text" id="user-search-input" placeholder="Search users">
-        <button type="submit">Search Users</button>
+        <input type="text" id="user-search-input" placeholder="搜索用户">
+        <button type="submit">搜索用户</button>
       </form>
 
       <form id="tag-search-form">
-        <input type="text" id="tag-search-input" placeholder="Search by tag">
-        <button type="submit">Search Tag</button>
+        <input type="text" id="tag-search-input" placeholder="按标签搜索">
+        <button type="submit">搜索标签</button>
       </form>
     </div>
   </div>
 
   <div class="section">
-    <h2>Video List</h2>
+    <h2>视频列表</h2>
     <ul id="video-list"></ul>
     <div class="footer-actions">
-      <button type="button" id="video-load-more" class="secondary">Load More</button>
+      <button type="button" id="video-load-more" class="secondary">加载更多</button>
     </div>
   </div>
 
   <div class="section">
-    <h2>User List</h2>
+    <h2>用户列表</h2>
     <ul id="user-list"></ul>
   </div>
 </div>
